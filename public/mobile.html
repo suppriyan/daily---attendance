@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>Mark Attendance</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    font-family: Arial, sans-serif;
+
+    min-height: 100vh;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #11998e,
+            #38ef7d
+        );
+
+}
+
+.container {
+
+    width: 420px;
+
+    background: white;
+
+    padding: 35px;
+
+    border-radius: 20px;
+
+    text-align: center;
+
+    box-shadow:
+        0 10px 30px
+        rgba(0,0,0,0.25);
+
+}
+
+.logo {
+
+    font-size: 55px;
+
+}
+
+h1 {
+
+    color: #047857;
+
+}
+
+input {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin: 10px 0;
+
+    border: 1px solid #ccc;
+
+    border-radius: 10px;
+
+    font-size: 16px;
+
+}
+
+button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    margin-top: 10px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #059669;
+
+    color: white;
+
+    font-size: 16px;
+
+    cursor: pointer;
+
+}
+
+button:hover {
+
+    background: #047857;
+
+}
+
+.status-button {
+
+    background: #7c3aed;
+
+    margin-top: 20px;
+
+}
+
+.status-button:hover {
+
+    background: #5b21b6;
+
+}
+
+.info {
+
+    background: #ecfdf5;
+
+    padding: 12px;
+
+    border-radius: 10px;
+
+    margin-top: 15px;
+
+    font-size: 14px;
+
+}
+
+#message {
+
+    font-weight: bold;
+
+    margin-top: 15px;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <div class="logo">📱</div>
+
+    <h1>Mark Attendance</h1>
+
+
+    <p>
+
+        Register Number:
+
+        <strong id="regDisplay"></strong>
+
+    </p>
+
+
+    <input
+        type="text"
+        id="mobile"
+        placeholder="Enter Mobile Number"
+    >
+
+
+    <button onclick="sendOTP()">
+
+        📩 Send OTP
+
+    </button>
+    <div id="timer" style="font-size: 20px; font-weight: bold; margin-top: 15px;">
+    OTP expires in: 01:00
+</div>
+
+
+    <div class="info">
+
+        💡 Demo OTP will appear in
+        your VS Code terminal.
+
+    </div>
+
+
+    <input
+        type="text"
+        id="otp"
+        placeholder="Enter 6-digit OTP"
+        maxlength="6"
+    >
+
+
+    <button onclick="verifyOTP()">
+
+        ✅ Verify OTP
+
+    </button>
+
+
+    <button
+        class="status-button"
+        onclick="checkStatus()">
+
+        📊 Check Attendance Status
+
+    </button>
+
+
+    <p id="message"></p>
+
+</div>
+
+
+<script>
+
+
+// Get register number from URL
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+
+const reg_no =
+    params.get("reg_no");
+
+
+document.getElementById(
+    "regDisplay"
+).textContent =
+    reg_no || "Unknown";
+
+
+
+// ================= SEND OTP =================
+
+function sendOTP() {
+    
+    const mobile = document.getElementById("mobile").value;
+
+    if (!mobile) {
+        alert("Please enter mobile number");
+        return;
+    }
+
+    fetch("/send-otp", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            reg_no: reg_no,
+            mobile: mobile
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if (data.success) {
+            
+            alert("Your OTP is: " + data.otp);
+
+    startTimer();
+
+        }
+
+    })
+    .catch(error => {
+        console.log(error);
+        alert("Server error");
+    });
+
+}
+
+
+
+// ================= VERIFY OTP =================
+
+function verifyOTP() {
+
+    const mobile =
+        document.getElementById(
+            "mobile"
+        ).value;
+
+
+    const otp =
+        document.getElementById(
+            "otp"
+        ).value;
+
+
+    if (!mobile || !otp) {
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            "Please enter mobile number and OTP";
+
+        return;
+
+    }
+
+
+    fetch("/verify-otp", {
+
+        method: "POST",
+
+        headers: {
+
+            "Content-Type":
+                "application/json"
+
+        },
+
+        body: JSON.stringify({
+
+            reg_no: reg_no,
+
+            mobile: mobile,
+
+            otp: otp
+
+        })
+
+    })
+
+    .then(response =>
+        response.json()
+    )
+
+    .then(data => {
+
+        document.getElementById(
+            "message"
+        ).textContent =
+            data.message;
+
+
+        if (data.success) {
+
+            document.getElementById(
+                "message"
+            ).style.color =
+                "green";
+
+        } else {
+
+            document.getElementById(
+                "message"
+            ).style.color =
+                "red";
+
+        }
+
+    });
+
+}
+let timerInterval;
+
+function startTimer() {
+
+    let timeLeft = 60;
+
+    clearInterval(timerInterval);
+
+    document.getElementById("timer").textContent =
+        "OTP expires in: 01:00";
+
+    timerInterval = setInterval(() => {
+
+        timeLeft--;
+
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+
+        document.getElementById("timer").textContent =
+            "OTP expires in: " +
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0");
+
+        if (timeLeft <= 0) {
+
+            clearInterval(timerInterval);
+
+            document.getElementById("timer").textContent =
+                "⏰ OTP expired";
+
+            document.getElementById("message").textContent =
+                "❌ Time expired. You are marked Absent.";
+
+        }
+
+    }, 1000);
+}
+
+
+// ================= CHECK STATUS =================
+
+function checkStatus() {
+
+    window.location.href =
+        "status.html?reg_no=" +
+        encodeURIComponent(reg_no);
+
+}
+
+</script>
+
+</body>
+
+</html>
