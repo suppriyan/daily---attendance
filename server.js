@@ -98,7 +98,70 @@ app.post("/login", (req, res) => {
     });
 
 });
+app.post("/teacher-login", (req, res) => {
 
+    const { teacher_id, password } = req.body;
+
+    if (!teacher_id || !password) {
+
+        return res.json({
+            success: false,
+            message: "Please enter Teacher ID and Password"
+        });
+
+    }
+
+    const teacherSql = `
+        SELECT *
+        FROM teachers
+        WHERE teacher_id = ?
+    `;
+
+    db.query(
+        teacherSql,
+        [teacher_id],
+        (err, result) => {
+
+            if (err) {
+
+                console.log(err);
+
+                return res.json({
+                    success: false,
+                    message: "Database error"
+                });
+
+            }
+
+            if (result.length === 0) {
+
+                return res.json({
+                    success: false,
+                    message: "Teacher account not found"
+                });
+
+            }
+
+            const teacher = result[0];
+
+            if (password !== teacher.password) {
+
+                return res.json({
+                    success: false,
+                    message: "Incorrect password"
+                });
+
+            }
+
+            res.json({
+                success: true,
+                message: "✅ Teacher login successful"
+            });
+
+        }
+    );
+
+});
 
 // ================= SEND OTP =================
 
@@ -404,7 +467,83 @@ app.get("/attendance/:reg_no", (req, res) => {
 // ================= START SERVER =================
 
 const PORT =
-    process.env.PORT || 3000;
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/public/login.html");
+});
+   
+process.env.PORT || 3000;
+// STUDENT REGISTRATION
+
+app.post("/register-student", (req, res) => {
+
+    const { reg_no, password, mobile } = req.body;
+
+    if (!reg_no || !password || !mobile) {
+
+        return res.json({
+            success: false,
+            message: "Please enter all details"
+        });
+
+    }
+
+    const registerNumber =
+        reg_no.trim().toUpperCase();
+
+    // Must start with 26CS
+    if (!/^26CS\d+$/i.test(registerNumber)) {
+
+        return res.json({
+            success: false,
+            message: "Register Number must start with 26CS"
+        });
+
+    }
+
+    const sql = `
+        INSERT INTO students
+        (reg_no, password, mobile)
+        VALUES (?, ?, ?)
+    `;
+
+    db.query(
+        sql,
+        [registerNumber, password, mobile],
+        (err) => {
+
+            if (err) {
+
+                if (err.code === "ER_DUP_ENTRY") {
+
+                    return res.json({
+                        success: false,
+                        message:
+                            "Register Number already exists"
+                    });
+
+                }
+
+                console.log(err);
+
+                return res.json({
+                    success: false,
+                    message: "Database error"
+                });
+
+            }
+
+            res.json({
+                success: true,
+                message:
+                    "✅ Account created successfully. Please login."
+            });
+
+        }
+    );
+
+});
+// TEACHER LOGIN
+
 
 
 
